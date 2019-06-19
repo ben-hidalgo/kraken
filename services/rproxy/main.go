@@ -36,7 +36,19 @@ func newProxy(target string) *prox {
 func (p *prox) handle(w http.ResponseWriter, r *http.Request) {
 	r.Header.Add("X-Forwarded-Host", r.Host)
 	r.Header.Add("X-Origin-Host", "127.0.0.1")
+	p.proxy.Transport = &myTransport{}
 	p.proxy.ServeHTTP(w, r)
+}
+
+type myTransport struct {
+}
+
+func (t *myTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+
+	log.Println("RoundTrip()")
+	response, err := http.DefaultTransport.RoundTrip(request)
+
+	return response, err
 }
 
 func main() {
