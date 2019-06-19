@@ -2,6 +2,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -34,6 +35,18 @@ func newProxy(target string) *prox {
 }
 
 func (p *prox) handle(w http.ResponseWriter, r *http.Request) {
+
+	username := "kraken"
+	password := "kraken"
+
+	user, pass, ok := r.BasicAuth()
+
+	if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(username)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(password)) != 1 {
+		body := map[string]string{"401": "unauthorized"}
+		jsonResponse(w, body, 401)
+		return
+	}
+
 	r.Header.Add("X-Forwarded-Host", r.Host)
 	r.Header.Add("X-Origin-Host", "127.0.0.1")
 	p.proxy.Transport = &myTransport{}
@@ -60,10 +73,7 @@ func main() {
 	http.HandleFunc("/scenes", scenesProxy.handle)
 	http.HandleFunc("/users", usersProxy.handle)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-
-		body := map[string]string{
-			"rproxy": "listening",
-		}
+		body := map[string]string{"rproxy": "listening"}
 		jsonResponse(w, body, 200)
 	})
 
