@@ -2,52 +2,61 @@
 package main
 
 import (
-	"flag"
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 )
 
-type Prox struct {
+func jsonResponse(w http.ResponseWriter, body interface{}, status int) {
+
+	j, err := json.Marshal(body)
+
+	if err != nil {
+		log.Printf("JsonResponse() err=%s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(j)
+}
+
+type prox struct {
 	target *url.URL
 	proxy  *httputil.ReverseProxy
 }
 
-func NewProxy(target string) *Prox {
+func newProxy(target string) *prox {
 	url, _ := url.Parse(target)
-	return &Prox{target: url, proxy: httputil.NewSingleHostReverseProxy(url)}
+	return &prox{target: url, proxy: httputil.NewSingleHostReverseProxy(url)}
 }
 
-func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("X-GoProxy", "GoProxy")
-	// p.proxy.Transport = &myTransport{}
+func (p *prox) handle(w http.ResponseWriter, r *http.Request) {
+	r.Header.Add("X-Forwarded-Host", r.Host)
+	r.Header.Add("X-Origin-Host", "127.0.0.1")
 	p.proxy.ServeHTTP(w, r)
 }
 
 func main() {
-	const (
-		defaultPort        = ":9090"
-		defaultPortUsage   = "default server port, ':9090'"
-		defaultTarget      = "http://127.0.0.1:9091"
-		defaultTargetUsage = "default redirect url, 'http://127.0.0.1:9091'"
-	)
-
-	// flags
-	port := flag.String("port", defaultPort, defaultPortUsage)
-	redirecturl := flag.String("url", defaultTarget, defaultTargetUsage)
-
-	flag.Parse()
-
-	fmt.Println("server will run on :", *port)
-	fmt.Println("redirecting to :", *redirecturl)
 
 	// proxy
-	proxy := NewProxy(*redirecturl)
+	scenesProxy := newProxy("http://127.0.0.1:9091")
+	usersProxy := newProxy("http://127.0.0.1:9092")
 
-	http.HandleFunc("/scenes", proxy.handle)
-	// http.HandleFunc("/", proxy.handle)
+	http.HandleFunc("/scenes", scenesProxy.handle)
+	http.HandleFunc("/users", usersProxy.handle)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
-	log.Fatal(http.ListenAndServe(*port, nil))
+		body := map[string]string{
+			"rproxy": "listening",
+		}
+		jsonResponse(w, body, 200)
+	})
+
+	log.Printf("GET /       listening on 9090")
+	log.Printf("GET /users  listening on 9090")
+	log.Printf("GET /scenes listening on 9090")
+	log.Fatal(http.ListenAndServe(":9090", nil))
 }
