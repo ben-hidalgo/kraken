@@ -16,7 +16,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jinzhu/gorm"
-	uuid "github.com/satori/go.uuid"
+	// uuid "github.com/satori/go.uuid"
 )
 
 func jsonResponse(w http.ResponseWriter, body interface{}, status int) {
@@ -33,22 +33,16 @@ func jsonResponse(w http.ResponseWriter, body interface{}, status int) {
 	w.Write(j)
 }
 
-type user struct {
-	GivenName  string
-	FamilyName string
-}
-
 func main() {
 
 	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
-		// fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
 
-		body := []user{
-			user{
+		body := []User{
+			User{
 				GivenName:  "John",
 				FamilyName: "Doe",
 			},
-			user{
+			User{
 				GivenName:  "Jane",
 				FamilyName: "Doe",
 			},
@@ -64,15 +58,27 @@ func main() {
 	// log.Fatal(http.ListenAndServe(":9092", nil))
 }
 
-type Product struct {
-	gorm.Model
-	Code  string
-	Price uint
+// type Product struct {
+// 	gorm.Model
+// 	Code  string
+// 	Price uint
+// }
+
+// User is the model for the user table
+type User struct {
+	Base
+	EmailAddress string `json:"emailAddress"`
+	GivenName    string `json:"givenName"`
+	FamilyName   string `json:"familyName"`
+	Status       Status `json:"status"`
+	Role         Role   `json:"role"`
+	password     []byte
+	PictureURL   string `json:"pictureUrl"`
 }
 
 // Base contains common columns for all tables.
 type Base struct {
-	ID        uuid.UUID  `gorm:"type:binary(16);primary_key;"`
+	//ID        uuid.UUID  `gorm:"type:binary(16);primary_key;"`
 	Version   int        `json:"version"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"update_at"`
@@ -80,16 +86,43 @@ type Base struct {
 }
 
 // BeforeCreate will set a UUID rather than numeric ID.
-func (base *Base) BeforeCreate(scope *gorm.Scope) error {
-	uuid := uuid.NewV4()
-	return scope.SetColumn("ID", uuid)
+// func (base *Base) BeforeCreate(scope *gorm.Scope) error {
+// 	uuid := uuid.NewV4()
+// 	return scope.SetColumn("ID", uuid)
+// }
+
+// Status of a User
+type Status string
+
+// The User.Status constants
+const (
+	StatusInvited  Status = "INVITED"
+	StatusAccepted Status = "ACCEPTED"
+	StatusVerified Status = "VERIFIED"
+	StatusDeleted  Status = "DELETED"
+	StatusDisabled Status = "DISABLED"
+	StatusBanned   Status = "BANNED"
+)
+
+// Role of a User
+type Role string
+
+// The User.Role constants
+const (
+	RoleAdmin    Role = "ADMIN"
+	RoleCSM      Role = "CSM"
+	RoleEmployee Role = "EMPLOYEE"
+	RoleUser     Role = "USER"
+)
+
+type MyLogger struct {
 }
 
-// User is the model for the user table.
-type User struct {
-	Base
-	SomeFlag bool `gorm:"column:some_flag;not null;default:true" json:"some_flag"`
-	// Profile s `json:"profile"`
+func (ml *MyLogger) Printf(format string, v ...interface{}) {
+	log.Printf(format, v)
+}
+func (ml *MyLogger) Verbose() bool {
+	return true
 }
 
 func other() {
@@ -112,28 +145,36 @@ func other() {
 		return
 	}
 
-	m.Steps(1)
+	m.Log = &MyLogger{}
+
+	m.Up()
+	//TODO: this doesn't actually fail because it is asynch; check the schema_migrations.dirty == 1?
+	if err != nil {
+		log.Printf("other() up err=%#v", err)
+		return
+	}
+	log.Println("other() returning")
+	return
 
 	// db.LogMode(true)
 
 	// Migrate the schema
-	db.AutoMigrate(&User{})
-
-	db.AutoMigrate(&Product{})
+	// db.AutoMigrate(&User{})
+	// db.AutoMigrate(&Product{})
 
 	// Create
-	db.Create(&Product{Code: "L1212", Price: 1000})
+	// db.Create(&Product{Code: "L1212", Price: 1000})
 
 	// db.Create(&User{SomeFlag: true})
 	return
 
 	// Read
-	var product Product
-	db.First(&product, 1)                   // find product with id 1
-	db.First(&product, "code = ?", "L1212") // find product with code l1212
+	// var product Product
+	// db.First(&product, 1)                   // find product with id 1
+	// db.First(&product, "code = ?", "L1212") // find product with code l1212
 
-	// Update - update product's price to 2000
-	db.Model(&product).Update("Price", 2000)
+	// // Update - update product's price to 2000
+	// db.Model(&product).Update("Price", 2000)
 
 	// Delete - delete product
 	// db.Delete(&product)
