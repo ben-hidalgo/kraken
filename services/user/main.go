@@ -7,10 +7,14 @@ import (
 	"net/http"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/golang-migrate/migrate"
-	"github.com/golang-migrate/migrate/database/mysql"
-	_ "github.com/golang-migrate/migrate/source/file"
+	// _ "github.com/go-sql-driver/mysql"
+	// _ "github.com/golang-migrate/migrate/source/file"
+
+	// "github.com/golang-migrate/migrate/v4"
+	// "github.com/golang-migrate/migrate"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 )
@@ -120,7 +124,7 @@ func other() {
 	// Create
 	db.Create(&Product{Code: "L1212", Price: 1000})
 
-	db.Create(&User{SomeFlag: true})
+	// db.Create(&User{SomeFlag: true})
 	return
 
 	// Read
