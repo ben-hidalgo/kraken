@@ -1,16 +1,18 @@
-// Package main implements a server for Greeter service.
 package main
 
 import (
+	_ "database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
-
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-migrate/migrate"
+	"github.com/golang-migrate/migrate/database/mysql"
+	_ "github.com/golang-migrate/migrate/source/file"
 	"github.com/jinzhu/gorm"
+	uuid "github.com/satori/go.uuid"
 )
 
 func jsonResponse(w http.ResponseWriter, body interface{}, status int) {
@@ -66,7 +68,8 @@ type Product struct {
 
 // Base contains common columns for all tables.
 type Base struct {
-	ID        uuid.UUID  `gorm:"type:varchar(36);primary_key;"`
+	ID        uuid.UUID  `gorm:"type:binary(16);primary_key;"`
+	Version   int        `json:"version"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"update_at"`
 	DeletedAt *time.Time `sql:"index" json:"deleted_at"`
@@ -88,13 +91,26 @@ type User struct {
 func other() {
 	db, err := gorm.Open("mysql", "local:local@/local?charset=utf8&parseTime=True&loc=Local")
 	if err != nil {
-		log.Printf("other() err=%s", err)
+		log.Printf("other() open err=%s", err)
+		return
+	}
+	defer db.Close()
+
+	driver, err := mysql.WithInstance(db.DB(), &mysql.Config{})
+	if err != nil {
+		log.Printf("other() withInstance err=%s", err)
 		return
 	}
 
-	defer db.Close()
+	m, err := migrate.NewWithDatabaseInstance("file://./migrations", "mysql", driver)
+	if err != nil {
+		log.Printf("other() migrate err=%#v", err)
+		return
+	}
 
-	db.LogMode(true)
+	m.Steps(1)
+
+	// db.LogMode(true)
 
 	// Migrate the schema
 	db.AutoMigrate(&User{})

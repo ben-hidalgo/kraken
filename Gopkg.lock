@@ -10,6 +10,19 @@
   version = "v1.4.1"
 
 [[projects]]
+  digest = "1:820151291414579fa7ea9294fac708c5b4586a7448cc57074651ceff81ea5349"
+  name = "github.com/golang-migrate/migrate"
+  packages = [
+    ".",
+    "database",
+    "database/mysql",
+    "source",
+  ]
+  pruneopts = "UT"
+  revision = "4937cd088f7c7193ee59b319c1c2caa7482aae8e"
+  version = "v3.5.4"
+
+[[projects]]
   digest = "1:777a682d72e7ff9dc6f139e6eb8edfaf3b8cbbd0f47023fdef174aede101e6bd"
   name = "github.com/jinzhu/gorm"
   packages = ["."]
@@ -46,6 +59,8 @@
   analyzer-version = 1
   input-imports = [
     "github.com/go-sql-driver/mysql",
+    "github.com/golang-migrate/migrate",
+    "github.com/golang-migrate/migrate/database/mysql",
     "github.com/jinzhu/gorm",
     "github.com/satori/go.uuid",
   ]
