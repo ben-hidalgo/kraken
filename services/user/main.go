@@ -92,7 +92,7 @@ func (base *Base) BeforeCreate(scope *gorm.Scope) error {
 	}
 
 	base.ID = id.Bytes()
-
+	base.Version = 0
 	base.Created = time.Now()
 	base.Updated = time.Now()
 	return nil
@@ -113,6 +113,7 @@ func (base *Base) AfterCreate(scope *gorm.Scope) error {
 
 // BeforeUpdate will populate the timestamps
 func (base *Base) BeforeUpdate(scope *gorm.Scope) error {
+
 	base.Updated = time.Now()
 	return nil
 }
@@ -184,7 +185,7 @@ func other() {
 		return
 	}
 
-	// db.LogMode(true)
+	db.LogMode(true)
 
 	user := &User{
 		EmailAddress: "john@doe.com",
@@ -194,6 +195,13 @@ func other() {
 
 	// Create
 	db.Create(user)
+
+	db.Model(user).Where("version = ?", user.Version).Updates(User{
+		EmailAddress: "2222@doe.com",
+		Base: Base{
+			Version: user.Version + 1,
+		},
+	})
 
 	log.Printf("other() ... user=%#v", user)
 
