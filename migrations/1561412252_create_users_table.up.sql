@@ -1,5 +1,6 @@
 CREATE TABLE users (
   id            binary(16)      NOT NULL DEFAULT (UUID_TO_BIN(UUID(),true)),
+  uuid          varchar(64)     GENERATED ALWAYS AS (bin_to_uuid(id)) VIRTUAL,
   email_address varchar(64)     NOT NULL,
   given_name    varchar(64),
   family_name   varchar(64),

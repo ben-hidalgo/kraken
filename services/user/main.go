@@ -16,7 +16,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jinzhu/gorm"
-	// uuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 func jsonResponse(w http.ResponseWriter, body interface{}, status int) {
@@ -87,16 +87,23 @@ type Model struct {
 
 // Base contains common columns for all tables.
 type Base struct {
-	//ID        uuid.UUID  `gorm:"type:binary(16);primary_key;"`
+	ID      uuid.UUID  `json:"id"`
+	UUID    string     `json:"uuid"`
 	Version int        `json:"version"`
 	Created time.Time  `json:"created"`
 	Updated time.Time  `json:"updated"`
 	Deleted *time.Time `json:"deleted"`
 }
 
-// BeforeCreate will set a UUID rather than numeric ID
+// BeforeCreate will populate the timestamps
 func (base *Base) BeforeCreate(scope *gorm.Scope) error {
 	base.Created = time.Now()
+	base.Updated = time.Now()
+	return nil
+}
+
+// BeforeUpdate will populate the timestamps
+func (base *Base) BeforeUpdate(scope *gorm.Scope) error {
 	base.Updated = time.Now()
 	return nil
 }
@@ -125,12 +132,16 @@ const (
 	RoleUser     Role = "USER"
 )
 
+// MyLogger implements migrate.Logger
 type MyLogger struct {
 }
 
+// Printf implementation of migrate.Logger.Printf
 func (ml *MyLogger) Printf(format string, v ...interface{}) {
 	log.Printf(format, v)
 }
+
+// Verbose implementation of migrate.Logger.Verbose
 func (ml *MyLogger) Verbose() bool {
 	return true
 }
@@ -166,11 +177,15 @@ func other() {
 
 	db.LogMode(true)
 
-	// Create
-	db.Create(&User{
+	user := &User{
 		EmailAddress: "john@doe.com",
 		Status:       StatusInvited,
 		Role:         RoleUser,
-	})
+	}
+
+	// Create
+	db.Create(user)
+
+	log.Printf("other() ... user=%#v", user)
 
 }
