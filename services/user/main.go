@@ -6,6 +6,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -115,6 +117,19 @@ type UserRow struct {
 	password     []byte
 	PictureURL   string `json:"pictureUrl"`
 	Version      int    `json:"version"`
+}
+
+type EpochTime time.Time
+
+func (et *EpochTime) UnmarshalJSON(data []byte) error {
+	t := strings.Trim(string(data), `"`) // Remove quote marks from around the JSON string
+	sec, err := strconv.ParseInt(t, 10, 64)
+	if err != nil {
+		return err
+	}
+	epochTime := time.Unix(sec, 0)
+	*et = EpochTime(epochTime)
+	return nil
 }
 
 // TableName sets the table name for UserRow
