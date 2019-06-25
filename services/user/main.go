@@ -114,7 +114,7 @@ type UserRow struct {
 	FamilyName   string `json:"familyName"`
 	Status       Status `json:"status"`
 	Role         Role   `json:"role"`
-	password     []byte
+	password     []byte `json:"-"`
 	PictureURL   string `json:"pictureUrl"`
 	Version      int    `json:"version"`
 }
