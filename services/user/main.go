@@ -65,24 +65,16 @@ func main() {
 
 	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
 
-		//TODO: don't expose the database structure (use a Rep)
-		body := []UserRow{
-			UserRow{
-				GivenName:  "John",
-				FamilyName: "Doe",
-			},
-			UserRow{
-				GivenName:  "Jane",
-				FamilyName: "Doe",
-			},
-		}
+		var users []UserRow
 
-		jsonResponse(w, body, 200)
+		db.Find(&users)
+
+		jsonResponse(w, users, 200)
 
 	})
 
-	// log.Printf("GET /users listening on 9092")
-	// log.Fatal(http.ListenAndServe(":9092", nil))
+	log.Printf("GET /users listening on 9092")
+	log.Fatal(http.ListenAndServe(":9092", nil))
 }
 
 func createOne(db *gorm.DB) {
@@ -105,11 +97,11 @@ func createOne(db *gorm.DB) {
 
 // Row contains common columns for all tables.
 type Row struct {
-	ID      []byte      `json:"_"`
+	ID      []byte      `json:"-"`
 	UUID    satori.UUID `json:"id" gorm:"-"`
 	Created time.Time   `json:"created"`
 	Updated time.Time   `json:"updated"`
-	Deleted *time.Time  `json:"deleted"`
+	Deleted *time.Time  `json:"deleted,omitempty"`
 }
 
 // UserRow is the model for the user table
