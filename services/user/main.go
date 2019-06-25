@@ -73,8 +73,8 @@ type User struct {
 
 // Base contains common columns for all tables.
 type Base struct {
-	ID      []byte      `json:"id" gorm:"type:binary;"`
-	UUID    satori.UUID `json:"uuid" gorm:"-"`
+	ID      []byte      `json:"_"`
+	UUID    satori.UUID `json:"id" gorm:"-"`
 	Version int         `json:"version"`
 	Created time.Time   `json:"created"`
 	Updated time.Time   `json:"updated"`
