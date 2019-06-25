@@ -119,11 +119,15 @@ type UserRow struct {
 	Version      int    `json:"version"`
 }
 
+//EpochTime supports JSON formatting
 type EpochTime time.Time
 
-func (t EpochTime) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.FormatInt(time.Time(t).Unix(), 10)), nil
+//MarshalJSON marshals EpochTime
+func (et EpochTime) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.FormatInt(time.Time(et).Unix(), 10)), nil
 }
+
+//UnmarshalJSON unmarshalls EpochTime
 func (et *EpochTime) UnmarshalJSON(data []byte) error {
 	t := strings.Trim(string(data), `"`) // Remove quote marks from around the JSON string
 	sec, err := strconv.ParseInt(t, 10, 64)
