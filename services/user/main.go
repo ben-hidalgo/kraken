@@ -141,12 +141,12 @@ type Status string
 
 // The User.Status constants
 const (
-	StatusInvited  Status = "INVITED"
-	StatusAccepted Status = "ACCEPTED"
-	StatusVerified Status = "VERIFIED"
-	StatusDeleted  Status = "DELETED"
-	StatusDisabled Status = "DISABLED"
-	StatusBanned   Status = "BANNED"
+	StatusInvited    Status = "INVITED"
+	StatusUnverified Status = "UNVERIFIED"
+	StatusVerified   Status = "VERIFIED"
+	StatusDisabled   Status = "DISABLED"
+	StatusBanned     Status = "BANNED"
+	StatusDeleted    Status = "DELETED"
 )
 
 // Role of a User
@@ -156,7 +156,8 @@ type Role string
 const (
 	RoleAdmin    Role = "ADMIN"
 	RoleCSM      Role = "CSM"
-	RoleEmployee Role = "EMPLOYEE"
+	RoleInternal Role = "INTERNAL"
+	RoleCustomer Role = "CUSTOMER"
 	RoleUser     Role = "USER"
 )
 
