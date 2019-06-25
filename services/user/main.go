@@ -31,6 +31,38 @@ func jsonResponse(w http.ResponseWriter, body interface{}, status int) {
 
 func main() {
 
+	db, err := gorm.Open("mysql", "local:local@/local?charset=utf8&parseTime=True&loc=Local")
+	if err != nil {
+		log.Printf("other() open err=%s", err)
+		return
+	}
+	defer db.Close()
+
+	driver, err := mysql.WithInstance(db.DB(), &mysql.Config{})
+	if err != nil {
+		log.Printf("other() withInstance err=%s", err)
+		return
+	}
+
+	m, err := migrate.NewWithDatabaseInstance("file://./migrations", "mysql", driver)
+	if err != nil {
+		log.Printf("other() migrate err=%#v", err)
+		return
+	}
+
+	m.Log = &MyLogger{}
+
+	m.Up()
+	//TODO: this doesn't actually fail because it is asynch; check the schema_migrations.dirty == 1?
+	if err != nil {
+		log.Printf("other() up err=%#v", err)
+		return
+	}
+
+	db.LogMode(true)
+
+	createOne(db)
+
 	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
 
 		//TODO: don't expose the database structure (use a Rep)
@@ -49,10 +81,26 @@ func main() {
 
 	})
 
-	other()
-
 	// log.Printf("GET /users listening on 9092")
 	// log.Fatal(http.ListenAndServe(":9092", nil))
+}
+
+func createOne(db *gorm.DB) {
+
+	user := &UserRow{
+		EmailAddress: "john@doe.com",
+		Status:       StatusInvited,
+		Role:         RoleUser,
+	}
+
+	// Create
+	db.Create(user)
+
+	// optimistic locking
+	db.Model(user).Where("version = ?", user.Version).Updates(UserRow{EmailAddress: "2222@doe.com", Version: user.Version + 1})
+
+	log.Printf("other() user=%#v", user)
+
 }
 
 // Row contains common columns for all tables.
@@ -173,51 +221,4 @@ func (ml *MyLogger) Printf(format string, v ...interface{}) {
 // Verbose implementation of migrate.Logger.Verbose
 func (ml *MyLogger) Verbose() bool {
 	return true
-}
-
-func other() {
-	db, err := gorm.Open("mysql", "local:local@/local?charset=utf8&parseTime=True&loc=Local")
-	if err != nil {
-		log.Printf("other() open err=%s", err)
-		return
-	}
-	defer db.Close()
-
-	driver, err := mysql.WithInstance(db.DB(), &mysql.Config{})
-	if err != nil {
-		log.Printf("other() withInstance err=%s", err)
-		return
-	}
-
-	m, err := migrate.NewWithDatabaseInstance("file://./migrations", "mysql", driver)
-	if err != nil {
-		log.Printf("other() migrate err=%#v", err)
-		return
-	}
-
-	m.Log = &MyLogger{}
-
-	m.Up()
-	//TODO: this doesn't actually fail because it is asynch; check the schema_migrations.dirty == 1?
-	if err != nil {
-		log.Printf("other() up err=%#v", err)
-		return
-	}
-
-	db.LogMode(true)
-
-	user := &UserRow{
-		EmailAddress: "john@doe.com",
-		Status:       StatusInvited,
-		Role:         RoleUser,
-	}
-
-	// Create
-	db.Create(user)
-
-	// optimistic locking
-	db.Model(user).Where("version = ?", user.Version).Updates(UserRow{EmailAddress: "2222@doe.com", Version: user.Version + 1})
-
-	log.Printf("other() user=%#v", user)
-
 }
