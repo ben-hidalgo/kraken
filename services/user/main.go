@@ -53,12 +53,6 @@ func main() {
 	// log.Fatal(http.ListenAndServe(":9092", nil))
 }
 
-// type Product struct {
-// 	gorm.Model
-// 	Code  string
-// 	Price uint
-// }
-
 // User is the model for the user table
 type User struct {
 	Base
@@ -92,13 +86,10 @@ func (base *Base) BeforeCreate(scope *gorm.Scope) error {
 
 	scope.DB().Raw("SELECT BIN_TO_UUID(UUID_TO_BIN(UUID(),true)) as value FROM dual").Scan(&wrapped)
 
-	log.Printf("BeforeCreate() result=%v", wrapped)
-
 	id, err := satori.FromString(*wrapped.Value)
 	if err != nil {
 		log.Printf("BeforeCreate() err=%v", err)
 	}
-	log.Printf("BeforeCreate() id=%v", id)
 
 	base.ID = id.Bytes()
 
@@ -109,14 +100,13 @@ func (base *Base) BeforeCreate(scope *gorm.Scope) error {
 
 // AfterCreate wil populate the UUID
 func (base *Base) AfterCreate(scope *gorm.Scope) error {
-	log.Printf("AfterCreate() id=%v", base.ID)
 
-	uuidValue, err := satori.FromBytes(base.ID)
+	uuid, err := satori.FromBytes(base.ID)
 	if err != nil {
 		log.Printf("AfterCreate() err=%v", err)
 	}
 
-	base.UUID = uuidValue
+	base.UUID = uuid
 
 	return nil
 }
@@ -194,7 +184,7 @@ func other() {
 		return
 	}
 
-	db.LogMode(true)
+	// db.LogMode(true)
 
 	user := &User{
 		EmailAddress: "john@doe.com",
