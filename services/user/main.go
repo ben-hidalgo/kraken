@@ -3,6 +3,7 @@ package main
 import (
 	_ "database/sql"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"time"
@@ -63,21 +64,16 @@ type User struct {
 	Role         Role   `json:"role"`
 	password     []byte
 	PictureURL   string `json:"pictureUrl"`
+	Version      int    `json:"version"`
 }
 
 // Base contains common columns for all tables.
 type Base struct {
 	ID      []byte      `json:"_"`
 	UUID    satori.UUID `json:"id" gorm:"-"`
-	Version int         `json:"version"`
 	Created time.Time   `json:"created"`
 	Updated time.Time   `json:"updated"`
 	Deleted *time.Time  `json:"deleted"`
-}
-
-// Increment increments the Version
-func Increment(version int) Base {
-	return Base{Version: version + 1}
 }
 
 type wrapper struct {
@@ -97,7 +93,7 @@ func (base *Base) BeforeCreate(scope *gorm.Scope) error {
 	}
 
 	base.ID = id.Bytes()
-	base.Version = 0
+	// base.Version = 0
 	base.Created = time.Now()
 	base.Updated = time.Now()
 	return nil
@@ -120,6 +116,18 @@ func (base *Base) AfterCreate(scope *gorm.Scope) error {
 func (base *Base) BeforeUpdate(scope *gorm.Scope) error {
 
 	base.Updated = time.Now()
+	return nil
+}
+
+// AfterUpdate checks the rows affected
+func (base *Base) AfterUpdate(scope *gorm.Scope) error {
+
+	log.Printf("AfterUpdate() db.RowsAffected=%d", scope.DB().RowsAffected)
+
+	if scope.DB().RowsAffected < 1 {
+		return errors.New("AfterUpdate.NoRowsAffected")
+	}
+
 	return nil
 }
 
@@ -201,11 +209,11 @@ func other() {
 	// Create
 	db.Create(user)
 
-	db.Model(user).Where("version = ?", user.Version).Updates(User{
-		EmailAddress: "2222@doe.com",
-		Base:         Increment(user.Version),
-	})
+	// optimistic locking
+	db.Model(user).Where("version = ?", user.Version).Updates(User{EmailAddress: "2222@doe.com", Version: user.Version + 1})
 
-	log.Printf("other() ... user=%#v", user)
+	log.Printf("other() db.RowsAffected=%d", db.RowsAffected)
+
+	log.Printf("other() user=%#v", user)
 
 }
