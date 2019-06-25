@@ -76,19 +76,10 @@ type User struct {
 	PictureURL   string `json:"pictureUrl"`
 }
 
-/* gorm.Model
-type Model struct {
-	ID        uint `gorm:"primary_key"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time `sql:"index"`
-}
-*/
-
 // Base contains common columns for all tables.
 type Base struct {
 	ID      []byte     `json:"id" gorm:"type:binary;"`
-	UUID    string     `json:"uuid" gorm:"-"`
+	UUID    uuid.UUID  `json:"uuid" gorm:"-"`
 	Version int        `json:"version"`
 	Created time.Time  `json:"created"`
 	Updated time.Time  `json:"updated"`
@@ -101,9 +92,6 @@ type wrapper struct {
 
 // BeforeCreate will populate the timestamps
 func (base *Base) BeforeCreate(scope *gorm.Scope) error {
-	// var result []byte
-	// var got []byte
-	// var wrapped = wrapper{dst: &got}
 
 	var wrapped = wrapper{}
 
@@ -121,6 +109,20 @@ func (base *Base) BeforeCreate(scope *gorm.Scope) error {
 
 	base.Created = time.Now()
 	base.Updated = time.Now()
+	return nil
+}
+
+// AfterCreate wil populate the UUID
+func (base *Base) AfterCreate(scope *gorm.Scope) error {
+	log.Printf("AfterCreate() id=%v", base.ID)
+
+	uuidValue, err := uuid.FromBytes(base.ID)
+	if err != nil {
+		log.Printf("AfterCreate() err=%v", err)
+	}
+
+	base.UUID = uuidValue
+
 	return nil
 }
 
