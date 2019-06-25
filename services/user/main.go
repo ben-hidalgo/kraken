@@ -76,20 +76,30 @@ type User struct {
 	PictureURL   string `json:"pictureUrl"`
 }
 
+/* gorm.Model
+type Model struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `sql:"index"`
+}
+*/
+
 // Base contains common columns for all tables.
 type Base struct {
 	//ID        uuid.UUID  `gorm:"type:binary(16);primary_key;"`
-	Version   int        `json:"version"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"update_at"`
-	DeletedAt *time.Time `sql:"index" json:"deleted_at"`
+	Version int        `json:"version"`
+	Created time.Time  `json:"created"`
+	Updated time.Time  `json:"updated"`
+	Deleted *time.Time `json:"deleted"`
 }
 
-// BeforeCreate will set a UUID rather than numeric ID.
-// func (base *Base) BeforeCreate(scope *gorm.Scope) error {
-// 	uuid := uuid.NewV4()
-// 	return scope.SetColumn("ID", uuid)
-// }
+// BeforeCreate will set a UUID rather than numeric ID
+func (base *Base) BeforeCreate(scope *gorm.Scope) error {
+	base.Created = time.Now()
+	base.Updated = time.Now()
+	return nil
+}
 
 // Status of a User
 type Status string
@@ -153,29 +163,14 @@ func other() {
 		log.Printf("other() up err=%#v", err)
 		return
 	}
-	log.Println("other() returning")
-	return
 
-	// db.LogMode(true)
-
-	// Migrate the schema
-	// db.AutoMigrate(&User{})
-	// db.AutoMigrate(&Product{})
+	db.LogMode(true)
 
 	// Create
-	// db.Create(&Product{Code: "L1212", Price: 1000})
+	db.Create(&User{
+		EmailAddress: "john@doe.com",
+		Status:       StatusInvited,
+		Role:         RoleUser,
+	})
 
-	// db.Create(&User{SomeFlag: true})
-	return
-
-	// Read
-	// var product Product
-	// db.First(&product, 1)                   // find product with id 1
-	// db.First(&product, "code = ?", "L1212") // find product with code l1212
-
-	// // Update - update product's price to 2000
-	// db.Model(&product).Update("Price", 2000)
-
-	// Delete - delete product
-	// db.Delete(&product)
 }
