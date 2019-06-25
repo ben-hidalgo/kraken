@@ -75,6 +75,11 @@ type Base struct {
 	Deleted *time.Time  `json:"deleted"`
 }
 
+// Increment increments the Version
+func Increment(version int) Base {
+	return Base{Version: version + 1}
+}
+
 type wrapper struct {
 	Value *string
 }
@@ -198,9 +203,7 @@ func other() {
 
 	db.Model(user).Where("version = ?", user.Version).Updates(User{
 		EmailAddress: "2222@doe.com",
-		Base: Base{
-			Version: user.Version + 1,
-		},
+		Base:         Increment(user.Version),
 	})
 
 	log.Printf("other() ... user=%#v", user)
