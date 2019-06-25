@@ -33,12 +33,13 @@ func main() {
 
 	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
 
-		body := []User{
-			User{
+		//TODO: don't expose the database structure (use a Rep)
+		body := []UserRow{
+			UserRow{
 				GivenName:  "John",
 				FamilyName: "Doe",
 			},
-			User{
+			UserRow{
 				GivenName:  "Jane",
 				FamilyName: "Doe",
 			},
@@ -54,9 +55,18 @@ func main() {
 	// log.Fatal(http.ListenAndServe(":9092", nil))
 }
 
-// User is the model for the user table
-type User struct {
-	Base
+// Row contains common columns for all tables.
+type Row struct {
+	ID      []byte      `json:"_"`
+	UUID    satori.UUID `json:"id" gorm:"-"`
+	Created time.Time   `json:"created"`
+	Updated time.Time   `json:"updated"`
+	Deleted *time.Time  `json:"deleted"`
+}
+
+// UserRow is the model for the user table
+type UserRow struct {
+	Row
 	EmailAddress string `json:"emailAddress"`
 	GivenName    string `json:"givenName"`
 	FamilyName   string `json:"familyName"`
@@ -67,13 +77,9 @@ type User struct {
 	Version      int    `json:"version"`
 }
 
-// Base contains common columns for all tables.
-type Base struct {
-	ID      []byte      `json:"_"`
-	UUID    satori.UUID `json:"id" gorm:"-"`
-	Created time.Time   `json:"created"`
-	Updated time.Time   `json:"updated"`
-	Deleted *time.Time  `json:"deleted"`
+// TableName sets the table name for UserRow
+func (UserRow) TableName() string {
+	return "users"
 }
 
 type wrapper struct {
@@ -81,7 +87,7 @@ type wrapper struct {
 }
 
 // BeforeCreate will populate the timestamps
-func (base *Base) BeforeCreate(scope *gorm.Scope) error {
+func (row *Row) BeforeCreate(scope *gorm.Scope) error {
 
 	var wrapped = wrapper{}
 
@@ -92,35 +98,34 @@ func (base *Base) BeforeCreate(scope *gorm.Scope) error {
 		log.Printf("BeforeCreate() err=%v", err)
 	}
 
-	base.ID = id.Bytes()
-	// base.Version = 0
-	base.Created = time.Now()
-	base.Updated = time.Now()
+	row.ID = id.Bytes()
+	row.Created = time.Now()
+	row.Updated = time.Now()
 	return nil
 }
 
 // AfterCreate wil populate the UUID
-func (base *Base) AfterCreate(scope *gorm.Scope) error {
+func (row *Row) AfterCreate(scope *gorm.Scope) error {
 
-	uuid, err := satori.FromBytes(base.ID)
+	uuid, err := satori.FromBytes(row.ID)
 	if err != nil {
 		log.Printf("AfterCreate() err=%v", err)
 	}
 
-	base.UUID = uuid
+	row.UUID = uuid
 
 	return nil
 }
 
 // BeforeUpdate will populate the timestamps
-func (base *Base) BeforeUpdate(scope *gorm.Scope) error {
+func (row *Row) BeforeUpdate(scope *gorm.Scope) error {
 
-	base.Updated = time.Now()
+	row.Updated = time.Now()
 	return nil
 }
 
 // AfterUpdate checks the rows affected
-func (base *Base) AfterUpdate(scope *gorm.Scope) error {
+func (row *Row) AfterUpdate(scope *gorm.Scope) error {
 
 	log.Printf("AfterUpdate() db.RowsAffected=%d", scope.DB().RowsAffected)
 
@@ -200,7 +205,7 @@ func other() {
 
 	db.LogMode(true)
 
-	user := &User{
+	user := &UserRow{
 		EmailAddress: "john@doe.com",
 		Status:       StatusInvited,
 		Role:         RoleUser,
@@ -210,9 +215,7 @@ func other() {
 	db.Create(user)
 
 	// optimistic locking
-	db.Model(user).Where("version = ?", user.Version).Updates(User{EmailAddress: "2222@doe.com", Version: user.Version + 1})
-
-	log.Printf("other() db.RowsAffected=%d", db.RowsAffected)
+	db.Model(user).Where("version = ?", user.Version).Updates(UserRow{EmailAddress: "2222@doe.com", Version: user.Version + 1})
 
 	log.Printf("other() user=%#v", user)
 
