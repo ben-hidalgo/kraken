@@ -7,16 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	// _ "github.com/go-sql-driver/mysql"
-	// _ "github.com/golang-migrate/migrate/source/file"
-
-	// "github.com/golang-migrate/migrate/v4"
-	// "github.com/golang-migrate/migrate"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jinzhu/gorm"
-	uuid "github.com/satori/go.uuid"
+	satori "github.com/satori/go.uuid"
 )
 
 func jsonResponse(w http.ResponseWriter, body interface{}, status int) {
@@ -78,12 +73,12 @@ type User struct {
 
 // Base contains common columns for all tables.
 type Base struct {
-	ID      []byte     `json:"id" gorm:"type:binary;"`
-	UUID    uuid.UUID  `json:"uuid" gorm:"-"`
-	Version int        `json:"version"`
-	Created time.Time  `json:"created"`
-	Updated time.Time  `json:"updated"`
-	Deleted *time.Time `json:"deleted"`
+	ID      []byte      `json:"id" gorm:"type:binary;"`
+	UUID    satori.UUID `json:"uuid" gorm:"-"`
+	Version int         `json:"version"`
+	Created time.Time   `json:"created"`
+	Updated time.Time   `json:"updated"`
+	Deleted *time.Time  `json:"deleted"`
 }
 
 type wrapper struct {
@@ -99,7 +94,7 @@ func (base *Base) BeforeCreate(scope *gorm.Scope) error {
 
 	log.Printf("BeforeCreate() result=%v", wrapped)
 
-	id, err := uuid.FromString(*wrapped.Value)
+	id, err := satori.FromString(*wrapped.Value)
 	if err != nil {
 		log.Printf("BeforeCreate() err=%v", err)
 	}
@@ -116,7 +111,7 @@ func (base *Base) BeforeCreate(scope *gorm.Scope) error {
 func (base *Base) AfterCreate(scope *gorm.Scope) error {
 	log.Printf("AfterCreate() id=%v", base.ID)
 
-	uuidValue, err := uuid.FromBytes(base.ID)
+	uuidValue, err := satori.FromBytes(base.ID)
 	if err != nil {
 		log.Printf("AfterCreate() err=%v", err)
 	}
