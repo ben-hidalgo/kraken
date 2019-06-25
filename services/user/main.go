@@ -101,9 +101,9 @@ func createOne(db *gorm.DB) {
 type Row struct {
 	ID      []byte      `json:"-"`
 	UUID    satori.UUID `json:"id" gorm:"-"`
-	Created time.Time   `json:"created"`
-	Updated time.Time   `json:"updated"`
-	Deleted *time.Time  `json:"deleted,omitempty"`
+	Created EpochTime   `json:"created"`
+	Updated EpochTime   `json:"updated"`
+	Deleted *EpochTime  `json:"deleted,omitempty"`
 }
 
 // UserRow is the model for the user table
@@ -121,6 +121,9 @@ type UserRow struct {
 
 type EpochTime time.Time
 
+func (t EpochTime) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.FormatInt(time.Time(t).Unix(), 10)), nil
+}
 func (et *EpochTime) UnmarshalJSON(data []byte) error {
 	t := strings.Trim(string(data), `"`) // Remove quote marks from around the JSON string
 	sec, err := strconv.ParseInt(t, 10, 64)
@@ -154,8 +157,8 @@ func (row *Row) BeforeCreate(scope *gorm.Scope) error {
 	}
 
 	row.ID = id.Bytes()
-	row.Created = time.Now()
-	row.Updated = time.Now()
+	row.Created = EpochTime(time.Now())
+	row.Updated = EpochTime(time.Now())
 	return nil
 }
 
@@ -175,7 +178,7 @@ func (row *Row) AfterCreate(scope *gorm.Scope) error {
 // BeforeUpdate will populate the timestamps
 func (row *Row) BeforeUpdate(scope *gorm.Scope) error {
 
-	row.Updated = time.Now()
+	row.Updated = EpochTime(time.Now())
 	return nil
 }
 
