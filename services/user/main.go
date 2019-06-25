@@ -87,7 +87,7 @@ type Model struct {
 
 // Base contains common columns for all tables.
 type Base struct {
-	ID      uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;"`
+	ID      []byte     `json:"id" gorm:"type:binary;"`
 	UUID    string     `json:"uuid" gorm:"-"`
 	Version int        `json:"version"`
 	Created time.Time  `json:"created"`
@@ -117,7 +117,7 @@ func (base *Base) BeforeCreate(scope *gorm.Scope) error {
 	}
 	log.Printf("BeforeCreate() id=%v", id)
 
-	base.ID = id
+	base.ID = id.Bytes()
 
 	base.Created = time.Now()
 	base.Updated = time.Now()
