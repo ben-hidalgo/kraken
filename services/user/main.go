@@ -87,16 +87,38 @@ type Model struct {
 
 // Base contains common columns for all tables.
 type Base struct {
-	ID      uuid.UUID  `json:"id"`
-	UUID    string     `json:"uuid"`
+	ID      uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;"`
+	UUID    string     `json:"uuid" gorm:"-"`
 	Version int        `json:"version"`
 	Created time.Time  `json:"created"`
 	Updated time.Time  `json:"updated"`
 	Deleted *time.Time `json:"deleted"`
 }
 
+type wrapper struct {
+	Value *string
+}
+
 // BeforeCreate will populate the timestamps
 func (base *Base) BeforeCreate(scope *gorm.Scope) error {
+	// var result []byte
+	// var got []byte
+	// var wrapped = wrapper{dst: &got}
+
+	var wrapped = wrapper{}
+
+	scope.DB().Raw("SELECT BIN_TO_UUID(UUID_TO_BIN(UUID(),true)) as value FROM dual").Scan(&wrapped)
+
+	log.Printf("BeforeCreate() result=%v", wrapped)
+
+	id, err := uuid.FromString(*wrapped.Value)
+	if err != nil {
+		log.Printf("BeforeCreate() err=%v", err)
+	}
+	log.Printf("BeforeCreate() id=%v", id)
+
+	base.ID = id
+
 	base.Created = time.Now()
 	base.Updated = time.Now()
 	return nil
