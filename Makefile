@@ -12,3 +12,7 @@ run-scene:
 
 run-rproxy:
 	GO111MODULE=on go run services/rproxy/main.go
+
+build:
+	GO111MODULE=on go build ./...
+
