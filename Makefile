@@ -16,3 +16,6 @@ run-rproxy:
 build:
 	GO111MODULE=on go build ./...
 
+add-migration:
+	touch ./migrations/`date +%s`_$(NAME).up.sql
+	touch ./migrations/`date +%s`_$(NAME).down.sql

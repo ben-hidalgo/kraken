@@ -35,30 +35,36 @@ func main() {
 
 	db, err := gorm.Open("mysql", "local:local@/local?charset=utf8&parseTime=True&loc=Local")
 	if err != nil {
-		log.Printf("other() open err=%s", err)
+		log.Fatalf("main() open err=%s", err)
 		return
 	}
 	defer db.Close()
 
 	driver, err := mysql.WithInstance(db.DB(), &mysql.Config{})
 	if err != nil {
-		log.Printf("other() withInstance err=%s", err)
+		log.Fatalf("main() withInstance err=%s", err)
 		return
 	}
 
 	m, err := migrate.NewWithDatabaseInstance("file://./migrations", "mysql", driver)
 	if err != nil {
-		log.Printf("other() migrate err=%#v", err)
+		log.Fatalf("main() migrate err=%#v", err)
 		return
 	}
 
 	m.Log = &MyLogger{}
 
 	m.Up()
-	//TODO: this doesn't actually fail because it is asynch; check the schema_migrations.dirty == 1?
+	//this doesn't actually return an err when it becomes dirty... WTH?
 	if err != nil {
-		log.Printf("other() up err=%#v", err)
+		log.Fatalf("main() up err=%#v", err)
 		return
+	}
+
+	var count int
+	db.Table("schema_migrations").Count(&count)
+	if count > 0 {
+		log.Fatalf("main() DIRTY!")
 	}
 
 	db.LogMode(true)
